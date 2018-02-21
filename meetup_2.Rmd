@@ -1,0 +1,33 @@
+---
+title: "Meetup 2 - Importing and Cleaning Data"
+author: "Kampalr"
+date: "February 24, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+For this meetup, we shall be importing and cleaning data obtained from data.ug. We shall be looking at the [PLE Results by district 2010 - 2016 dataset](http://catalog.data.ug/dataset/uneb-results/resource/6e5885bd-2952-4086-aaac-0c2aa58ec762).
+
+We shall levearge on the use of [b]base R functions[/b] as these functions tend to be the most popular for new entrants into R. For our next session, we shall introduce members to [tidyverse](https://www.tidyverse.org/) that provides a collection of functions purposely customised for data science tasks.
+
+### Importing the data
+The file that we are using is a standard CSV file containing details on PLE results for the period 2010 - 2016.
+
+```{r dataImport cache=TRUE}
+url <- "http://catalog.data.ug/dataset/1242faeb-b5a0-4ffb-8274-9c9975aad183/resource/6e5885bd-2952-4086-aaac-0c2aa58ec762/download/ple-results-by-district-2010-2016.csv"
+
+data <- read.csv(url, stringsAsFactors = FALSE)
+head(data)
+```
+
+The data looks fairly clean from the initial on-set but let's investigate further...
+
+## Cleaning the data
+We won't attempt to completely clean the data set as this may take too much time but instead, we shall look at possible techniques to look at the data and invoke thinking on what approach could be taken to clean the dataset.
+
+Let's first look at the spread of the data.
+
+### 1. 
