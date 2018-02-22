@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, error = FALSE, warning = FALSE)
 ```
 
 For this meetup, we shall be importing and cleaning data obtained from data.ug. We shall be looking at the [PLE Results by district 2010 - 2016 dataset](http://catalog.data.ug/dataset/uneb-results/resource/6e5885bd-2952-4086-aaac-0c2aa58ec762).
@@ -16,7 +16,7 @@ We shall levearge on the use of [b]base R functions[/b] as these functions tend 
 ### Importing the data
 The file that we are using is a standard CSV file containing details on PLE results for the period 2010 - 2016.
 
-```{r dataImport cache=TRUE}
+```{r dataImport}
 url <- "http://catalog.data.ug/dataset/1242faeb-b5a0-4ffb-8274-9c9975aad183/resource/6e5885bd-2952-4086-aaac-0c2aa58ec762/download/ple-results-by-district-2010-2016.csv"
 
 data <- read.csv(url, stringsAsFactors = FALSE)
@@ -30,4 +30,48 @@ We won't attempt to completely clean the data set as this may take too much time
 
 Let's first look at the spread of the data.
 
-### 1. 
+### 1. How many districts are there?
+
+```{r districts}
+districts <- readLines(file('districts.txt'))
+districts
+
+```
+
+Looking at the [census data (2017)](http://www.ubos.org/onlinefiles/uploads/ubos/census_projections/District%20Single%20Years%20Final_17.07.2017.xls) from Uganda Bureau of Statistics, we can see that there are currently **```r length(districts)```** districts in Uganda.
+
+What happens when we try to count the number of districts that are present in the PLE dataset?  
+```{r districtCount}
+districts_PLE <- as.data.frame(table(data$DISTRICT))
+districts_PLE
+```
+
+We can observe that there are ***`r nrow(districts_PLE)`*** unique districts registered. By scrolling through the few rows, we notice a couple of things:
+
+ - There are duplicate districts (e.g. Abim, Adjumani, etc.). The districts have white spaces which prevent them from being recognised as the same.
+ - There are subcounties/municipalities listed as districts, e.g. Arua M/C, Arua Main, and Arua Mun.
+ 
+ Let's address the first issue and remove the white space and see whether our results will improve.
+ 
+### Removing white space
+ 
+```{r removeWhiteSpace}
+data$DISTRICT <- unlist(lapply(X = data$DISTRICT, FUN = trimws))
+
+# And let's test the new results
+districts_PLE <- as.data.frame(table(data$DISTRICT))
+districts_PLE
+
+```
+
+As we can see, the duplicate districts have been knocked out bringing the unique number of districts down to ***`r nrow(districts_PLE)`***. Brilliant.
+
+We can now tackle the second observation.
+
+### Standardise districts
+We noted that there were a number of districts that were broken down into counties, subcounties and municipalities. As an example, we have Arua district:
+```{r Arua} 
+unique(data[grep(pattern = "*ARUA*", x = data$DISTRICT, ignore.case = TRUE), 'DISTRICT'])
+```
+
+This presents a challenge 
