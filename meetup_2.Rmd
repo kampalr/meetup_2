@@ -48,10 +48,10 @@ districts_PLE
 
 We can observe that there are ***`r nrow(districts_PLE)`*** unique districts registered. By scrolling through the few rows, we notice a couple of things:
 
- - There are duplicate districts (e.g. Abim, Adjumani, etc.). The districts have white spaces which prevent them from being recognised as the same.
- - There are subcounties/municipalities listed as districts, e.g. Arua M/C, Arua Main, and Arua Mun.
+* There are duplicate districts (e.g. Abim, Adjumani, etc.). The districts have white spaces which prevent them from being recognised as the same.
+* There are subcounties/municipalities listed as districts, e.g. Arua M/C, Arua Main, and Arua Mun.
  
- Let's address the first issue and remove the white space and see whether our results will improve.
+Let's address the first issue and remove the white space and see whether our results will improve.
  
 ### Removing white space
  
@@ -93,9 +93,73 @@ In our circumstance, we shall add the corresponding variables for each similar a
 
 But before we can execute our strategy, let's check the other variables to make sure they are sane.
 
-### Do we have any null values?
+### Do we have any null (NA) values?
 
-Let's check to see whether there are any null values for each variable:
+Let's check to see whether there are any null (NA) values for each variable:
 ```{r nullChecks}
+# Let's apply an NA check on each column
+na_cols <- apply(data, 2, function(x) sum(is.na(x)))
+
+# Let's print the result as a dataframe to ease the view.
+na_df <- data.frame(Measure = names(na_cols), Value = na_cols, row.names = NULL)
+
+# Let's order it in descending order
+na_df <- na_df[order(-na_df$Value), ]
+
+# Print out the summary
+na_df
+```
+
+We observe that all observations have their "NUMBER.OF.SCHOOLS.UNEB.CENTRE" as blank (`r nrow(data)` observations). We cannot be sure whether this was a column added in error, whether this was an omission during the data import/export process or whether this was acutally not tallied. A further consult would be required with the data owner to find out why this is blank. However, for our example, we shall focus on maintaining these as ***NIL/ZERO***.
+
+We also notice an interesting observation. We observed that there are ***`r na_df[na_df$Measure == 'FEMALE.TOTAL.DIV1', ]$Value`*** female students that did not achieve a DIVISION 1 during this period. Let's see in which districts this phenomenon occurred.
+
+```{r femaleDiv1}
+# Obtain a subset of the data containing total candidate and female candidate info
+female_attendance <- data[is.na(data$FEMALE.TOTAL.DIV1), 
+                          c('YEAR', 'DISTRICT', 'TOTAL.CANDIDATES', 'FEMALE.CANDIDATES')]
+
+# Calculat the percentage of female candidates obtaining Division 1
+female_attendance$FEMALE.ATTENDANCE.PERCENT <- 
+  female_attendance$FEMALE.CANDIDATES / female_attendance$TOTAL.CANDIDATES * 100
+
+# Print out the data 
+female_attendance
+```
+
+We will notice that these are in remote areas with low female attendance to the exams compared to the total number of candidates. Take note that as discovered during our data cleaning process, no females obtained a Division 1 over this period. In the long run of things, this could form part of a recommendation for follow-up on education with the girl child.
+
+Now, back to the data cleaning process...
+
+For our benefit, we shall mark all the NA values with **NIL/ZERO**. The missing values, as they are small, will not cause any significant variation in the overall trend of the data:
+
+```{r zerofyNA}
+# Replace all NA values with NIL/ZERO
+data[is.na(data)] <- 0
+```
+
+### What about merging similar districts?
+Now that we have replaced the NA values with NIL/ZERO, we can merge the observations of similar districts into a single observation. We are assuming that:
+
+* Values are independent and do not overlap in each district's consituency/municipality.
+* Values will be grouped by year (and district) and associated values summed.
+
+So, our approach will be:
+
+* Group the observations by year
+* For each year:
+  + identify districts with similar names
+  + sum up the values for the similar districts and rename the observations with the official district name
+  + merge the new observations with the original dataset whilst dropping the older records.
+* Merge the above year groups into a new dataset.
+
+```{r cleanDataSet}
+# Get the range of years
+years <- unique(data$YEAR)
+
+for(year in years) {
+  sub_data <- subset(data, subset = data$YEAR == year)
+#  unique(data[grep(pattern = "*ARUA*", x = data$DISTRICT, ignore.case = TRUE), 'DISTRICT'])
+}
 
 ```
