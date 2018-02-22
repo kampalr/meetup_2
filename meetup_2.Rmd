@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE, error = FALSE, warning = FALSE)
 
 For this meetup, we shall be importing and cleaning data obtained from data.ug. We shall be looking at the [PLE Results by district 2010 - 2016 dataset](http://catalog.data.ug/dataset/uneb-results/resource/6e5885bd-2952-4086-aaac-0c2aa58ec762).
 
-We shall levearge on the use of [b]base R functions[/b] as these functions tend to be the most popular for new entrants into R. For our next session, we shall introduce members to [tidyverse](https://www.tidyverse.org/) that provides a collection of functions purposely customised for data science tasks.
+We shall levearge on the use of ***base R functions*** as these functions tend to be the most popular for new entrants into R. For our next session, we shall introduce members to [tidyverse](https://www.tidyverse.org/) that provides a collection of functions purposely customised for data science tasks.
 
 ### Importing the data
 The file that we are using is a standard CSV file containing details on PLE results for the period 2010 - 2016.
@@ -23,7 +23,7 @@ data <- read.csv(url, stringsAsFactors = FALSE)
 head(data)
 ```
 
-The data looks fairly clean from the initial on-set but let's investigate further...
+In the ideal case, we would have a document similar to a data dictionary that would help define what each column (variable) means and additional characteristics of these variables such as their expected types and value ranges. ***Unfortunately***, we were unable to find the corresponding document which may add some complexity when trying to understand the data without making a consultation with the data owner. 
 
 ## Cleaning the data
 We won't attempt to completely clean the data set as this may take too much time but instead, we shall look at possible techniques to look at the data and invoke thinking on what approach could be taken to clean the dataset.
@@ -74,4 +74,28 @@ We noted that there were a number of districts that were broken down into counti
 unique(data[grep(pattern = "*ARUA*", x = data$DISTRICT, ignore.case = TRUE), 'DISTRICT'])
 ```
 
-This presents a challenge 
+This presents an interesting challenge. Using the official list of districts (the 'districts' object), we will need to identify those rows in the PLE dataset that have districts with a similar name. 
+
+We can quickly do this by establishing a list of valid districts with the row numbers they correspond with in the PLE dataset: 
+
+```{r findSimilarDistricts}
+district_rows <- list()
+
+for(district in districts) {
+    rows <- grep(pattern = paste("*", district, "*", sep=""), x = data$DISTRICT)
+    district_rows[[district]] <- rows
+}
+```
+
+In such a situation, it would be better to enquire from the original data owner on how the data was collected so as to establish the best strategy to unifying similar datasets. 
+
+In our circumstance, we shall add the corresponding variables for each similar area, for example, "ARUA", "ARUA M/C", "ARUA MUN." and "ARUA MAIN" would be combined to one record "ARUA".
+
+But before we can execute our strategy, let's check the other variables to make sure they are sane.
+
+### Do we have any null values?
+
+Let's check to see whether there are any null values for each variable:
+```{r nullChecks}
+
+```
