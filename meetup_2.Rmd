@@ -40,7 +40,7 @@ head(dat)
 
 # specific columns that i need. 
 # names(df) or colnames(df)
-dat <- dat[, (names(dat) %in% c("YEAR","DISTRICT","NUMBER.OF.SCHOOLS.UNEB.CENTRE", "OTAL.CANDIDATES", 
+dat <- dat[, (names(dat) %in% c("YEAR","DISTRICT","NUMBER.OF.SCHOOLS.UNEB.CENTRE","TOTAL.CANDIDATES", 
                                "TOTAL.DIV.1", "TOTAL.DIV.2", "TOTAL.DIV.3", "TOTAL.U", "TOTAL.X", 
                                "FEMALE.CANDIDATES", "MALE.CANDIDATES"))]
 
@@ -114,7 +114,7 @@ for (variable in vector) {
 
 ```{r pickDistrictNamesOnly}
 # reuse - main dataframe for an example. 
-dat <- data
+# dat <- data
 for(i in 1:length(dat$DISTRICT)){
     dat$DISTRICT[i] <- strsplit(dat$DISTRICT[i], " ")[[1]][1]
 }
@@ -245,6 +245,36 @@ for(year in years) {
 
 ```
 
+Anothe quick Merge would take these lines: 
+```{r cleanDataset2}
+# concatenate 2 columns with _ value. 
+dat$YEAR_DICT <- paste(dat$YEAR, dat$DISTRICT, sep = "_")
+
+# Using base aggregate to loop through the dataframe. This gives us unique YEAR_DISTRICT as 1 var. 
+# Elimidate YEAR_DISTRICT var. 
+# Sum all the rows and aggregate into 1 row assigned to YEAR_DISTRICT LINE
+dat_df <- aggregate(dat[,3:11], list(dat[,12]), function(x) sum(x, na.rm = TRUE))
+
+# create temporary list to split the merged YEAR_DISTRICT into 2 columns. 
+list <- strsplit(dat_df$Group.1, "_")
+
+# Create first part using inbuild Reduce to separate the list while combining them 
+# onto a dataframe with rbind. call df_a
+dat_df_a <- data.frame(Reduce(rbind, list))
+
+# separate remaining dataframe from YEAR_DISTRICT values. call df_b
+dat_df_b <- dat_df[, 2:10]
+
+# Map the 2 dataframes df_a and df_b by columns using cbind. 
+dat_df_clean <- cbind(dat_df_a, dat_df_b)
+
+# Rename the column names to something readable or back to previous. 
+cols <- c("YEAR","DISTRICT")
+colnames(dat_df_clean[, 1:2]) <- cols
+
+```
+
+
 
 
 ### Understanding data with simple visualizations
@@ -272,13 +302,13 @@ Understanding basic trends across the data. Are the first grades in Abim increas
 
 
 ```{r vizLine}
+dat$YEAR<- as.factor(dat$YEAR)
 
-# Make sure the Year is a factor. using as.factor()
-dat$YEAR <- as.factor(dat$YEAR)
+
 abim_dat <- dat[which(dat$DISTRICT=='ABIM'),]
 # dim(newdata)
 # Try "o" "p" "l" "b"
-plot(abim_dat$YEAR, abim_dat$TOTAL.DIV.1, type ="l",  col = "red" )
+plot(as.numeric(abim_dat$YEAR), abim_dat$TOTAL.DIV.1, type ="l",  col = "red" )
 abline(lm (TOTAL.DIV.1 ~ YEAR, data = abim_dat), lty = "dashed")
 
 ```
