@@ -18,14 +18,39 @@ The file that we are using is a standard CSV file containing details on PLE resu
 
 ```{r dataImport}
 url <- "http://catalog.data.ug/dataset/1242faeb-b5a0-4ffb-8274-9c9975aad183/resource/6e5885bd-2952-4086-aaac-0c2aa58ec762/download/ple-results-by-district-2010-2016.csv"
-
-data <- read.csv(url, stringsAsFactors = FALSE)
+# note: If on windows machine make sure to use method = "wget" check out ?download.file() for different options. 
+download.file(url, destfile = "./data/data.csv", method="curl")
+data <- read.csv('./data/data.csv', stringsAsFactors = FALSE)
 head(data)
 ```
 
 In the ideal case, we would have a document similar to a data dictionary that would help define what each column (variable) means and additional characteristics of these variables such as their expected types and value ranges. ***Unfortunately***, we were unable to find the corresponding document which may add some complexity when trying to understand the data without making a consultation with the data owner. 
 
 ## Cleaning the data
+We shall start with making the data readable from the column names and other variables. 
+
+```{r dataReadable}
+# basis to understand my data. 
+dat <- data
+head(dat)
+str(dat)
+names(dat)
+dim(dat)
+dat$DISTRICT
+head(dat)
+
+# specific columns that i need. 
+# names(df) or colnames(df)
+dat <- ple_df[, (names(dat) %in% c("YEAR","DISTRICT","NUMBER.OF.SCHOOLS.UNEB.CENTRE", "OTAL.CANDIDATES", 
+                               "TOTAL.DIV.1", "TOTAL.DIV.2", "TOTAL.DIV.3", "TOTAL.U", "TOTAL.X", 
+                               "FEMALE.CANDIDATES", "MALE.CANDIDATES"))]
+
+# clean column names remove . with regular expressions. 
+?gsub()
+names(dat) <- gsub("\\.", "_", names(dat))
+
+```
+
 We won't attempt to completely clean the data set as this may take too much time but instead, we shall look at possible techniques to look at the data and invoke thinking on what approach could be taken to clean the dataset.
 
 Let's first look at the spread of the data.
@@ -42,7 +67,7 @@ Looking at the [census data (2017)](http://www.ubos.org/onlinefiles/uploads/ubos
 
 What happens when we try to count the number of districts that are present in the PLE dataset?  
 ```{r districtCount}
-districts_PLE <- as.data.frame(table(data$DISTRICT))
+districts_PLE <- table(data$DISTRICT)
 districts_PLE
 ```
 
@@ -58,6 +83,10 @@ Let's address the first issue and remove the white space and see whether our res
 ```{r removeWhiteSpace}
 data$DISTRICT <- unlist(lapply(X = data$DISTRICT, FUN = trimws))
 
+# Using regexes or sub. sub("\\s+$", "", x) -- trailing or sub("^\\s+", "", x) --> leading. 
+# data$DISTRICT <- gsub('\\s$', '', data$DISTRICT)
+
+
 # And let's test the new results
 districts_PLE <- as.data.frame(table(data$DISTRICT))
 districts_PLE
@@ -69,6 +98,19 @@ As we can see, the duplicate districts have been knocked out bringing the unique
 We can now tackle the second observation.
 
 ### Standardise districts
+
+We do notice that each District got the REAL name then SPACE then an additional name like M/C or MUN e.g MBARARA M/C,IGANGA MUN. One other strategy we could use is removing anything after the first keyword.  
+
+```{r pickDistrictNamesOnly}
+# reuse - main dataframe for an example. 
+dat <- data
+for(i in 1:length(dat$DISTRICT)){
+    dat$DISTRICT[i] <- strsplit(dat$DISTRICT[i], " ")[[1]][1]
+}
+
+print(tail(dat$DISTRICT, n = 100))
+```
+
 We noted that there were a number of districts that were broken down into counties, subcounties and municipalities. As an example, we have Arua district:
 ```{r Arua} 
 unique(data[grep(pattern = "*ARUA*", x = data$DISTRICT, ignore.case = TRUE), 'DISTRICT'])
