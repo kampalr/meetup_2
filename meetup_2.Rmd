@@ -103,6 +103,15 @@ We can now tackle the second observation.
 
 We do notice that each District got the REAL name then SPACE then an additional name like M/C or MUN e.g MBARARA M/C,IGANGA MUN. One other strategy we could use is removing anything after the first keyword.  
 
+
+There are many type of loops, but today we will focus on the for loop. Here is the basic structure of a for loop:
+
+```{ forloop}
+for (variable in vector) {
+  # do something
+}
+```
+
 ```{r pickDistrictNamesOnly}
 # reuse - main dataframe for an example. 
 dat <- data
@@ -218,7 +227,12 @@ merge_observations <- function(dataset, district, year) {
 }
 
 # Get the range of years
-years <- unique(data$YEAR)
+# years <- unique(data$YEAR)
+# Use factors for these YEAR as it's ordinal data. 
+data$YEAR <- as.factor(data$YEAR)
+
+# get the levels. 
+years <- levels(data$YEAR)
 
 # A list to capture new records. We shall subsequently merge these items.
 new_data <- list()
@@ -230,3 +244,98 @@ for(year in years) {
 }
 
 ```
+
+
+
+### Understanding data with simple visualizations
+One of the most powerful functions of R is it's ability to produce a wide range of graphics to quickly and easily visualise data. Plots can be replicated, modified and even publishable with just a handful of 
+
+```{r vizPlot}
+
+# Using the base Plot. 
+plot(dat$FEMALE.CANDIDATES,dat$MALE.CANDIDATES)
+
+```
+
+Now is time to look at our data in the eyes of some basic visualizations. If we want to see the mean of FEMALE CANDIDATES. 
+
+```{r vizHist}
+
+# Using the base Hist. 
+hist(dat$FEMALE.CANDIDATES, main = "Distribution of FEMALE CANDIDATES", breaks = 30, xlab = "count (n)", col = "red")
+
+```
+
+
+Understanding basic trends across the data. Are the first grades in Abim increasing by years? We can add a basic linear regression to the plot using abline. NB. we can also use lty, lwd, col here.
+
+
+
+```{r vizLine}
+
+# Make sure the Year is a factor. using as.factor()
+dat$YEAR <- as.factor(dat$YEAR)
+abim_dat <- dat[which(dat$DISTRICT=='ABIM'),]
+# dim(newdata)
+# Try "o" "p" "l" "b"
+plot(abim_dat$YEAR, abim_dat$TOTAL.DIV.1, type ="l",  col = "red" )
+abline(lm (TOTAL.DIV.1 ~ YEAR, data = abim_dat), lty = "dashed")
+
+```
+
+
+Scatter plots with legends and we will specify colour as the years.
+
+```{r vizScatter}
+# add pch = 15
+# bg = "blue"
+# cex = 2
+plot(dat$FEMALE.CANDIDATES, dat$MALE.CANDIDATES, col = dat$YEAR)
+
+# levels(dat$YEAR)
+legend(x = 500, y = 20000, legend = levels(dat$YEAR), col = c(1:3), pch = 16)
+
+```
+
+
+Let's examine the distribution of first grades for every year:
+If you wish to compare the medians of the boxplot, you can use the function notch. If the notches of two plots do not overlap, this is 'strong evidence' that the two medians differ (see ?boxplot)
+
+
+```{r vizBox}
+
+#notch = T
+#las = 1
+boxplot(dat$TOTAL.DIV.1 ~ dat$YEAR)
+
+
+```
+
+
+Saving Plots. 
+```{r savePng}
+
+# png
+
+png("distribution_female.png", width = 500, height = 500, res = 72)
+
+hist(dat$FEMALE.CANDIDATES, main = "Distribution of FEMALE CANDIDATES", breaks = 30, xlab = "count (n)", col = "red")
+
+
+dev.off()
+
+```
+
+
+```{r savePdf}
+# pdf
+
+pdf("distribution_male.pdf")
+
+hist(dat$MALE.CANDIDATES, main = "Distribution of MALE CANDIDATES", breaks = 30, xlab = "count (n)", col = "red")
+
+dev.off()
+```
+
+
+
