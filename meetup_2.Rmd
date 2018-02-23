@@ -36,18 +36,20 @@ head(dat)
 str(dat)
 names(dat)
 dim(dat)
-dat$DISTRICT
 head(dat)
 
 # specific columns that i need. 
 # names(df) or colnames(df)
-dat <- ple_df[, (names(dat) %in% c("YEAR","DISTRICT","NUMBER.OF.SCHOOLS.UNEB.CENTRE", "OTAL.CANDIDATES", 
+dat <- dat[, (names(dat) %in% c("YEAR","DISTRICT","NUMBER.OF.SCHOOLS.UNEB.CENTRE", "OTAL.CANDIDATES", 
                                "TOTAL.DIV.1", "TOTAL.DIV.2", "TOTAL.DIV.3", "TOTAL.U", "TOTAL.X", 
                                "FEMALE.CANDIDATES", "MALE.CANDIDATES"))]
+
 
 # clean column names remove . with regular expressions. 
 ?gsub()
 names(dat) <- gsub("\\.", "_", names(dat))
+
+print(head(dat))
 
 ```
 
