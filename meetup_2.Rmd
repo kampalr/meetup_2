@@ -18,14 +18,41 @@ The file that we are using is a standard CSV file containing details on PLE resu
 
 ```{r dataImport}
 url <- "http://catalog.data.ug/dataset/1242faeb-b5a0-4ffb-8274-9c9975aad183/resource/6e5885bd-2952-4086-aaac-0c2aa58ec762/download/ple-results-by-district-2010-2016.csv"
-
-data <- read.csv(url, stringsAsFactors = FALSE)
+# note: If on windows machine make sure to use method = "wget" check out ?download.file() for different options. 
+download.file(url, destfile = "./data/data.csv", method="curl")
+data <- read.csv('./data/data.csv', stringsAsFactors = FALSE)
 head(data)
 ```
 
 In the ideal case, we would have a document similar to a data dictionary that would help define what each column (variable) means and additional characteristics of these variables such as their expected types and value ranges. ***Unfortunately***, we were unable to find the corresponding document which may add some complexity when trying to understand the data without making a consultation with the data owner. 
 
 ## Cleaning the data
+We shall start with making the data readable from the column names and other variables. 
+
+```{r dataReadable}
+# basis to understand my data. 
+dat <- data
+head(dat)
+str(dat)
+names(dat)
+dim(dat)
+head(dat)
+
+# specific columns that i need. 
+# names(df) or colnames(df)
+dat <- dat[, (names(dat) %in% c("YEAR","DISTRICT","NUMBER.OF.SCHOOLS.UNEB.CENTRE","TOTAL.CANDIDATES", 
+                               "TOTAL.DIV.1", "TOTAL.DIV.2", "TOTAL.DIV.3", "TOTAL.U", "TOTAL.X", 
+                               "FEMALE.CANDIDATES", "MALE.CANDIDATES"))]
+
+
+# clean column names remove . with regular expressions. 
+?gsub()
+names(dat) <- gsub("\\.", "_", names(dat))
+
+print(head(dat))
+
+```
+
 We won't attempt to completely clean the data set as this may take too much time but instead, we shall look at possible techniques to look at the data and invoke thinking on what approach could be taken to clean the dataset.
 
 Let's first look at the spread of the data.
@@ -42,7 +69,7 @@ Looking at the [census data (2017)](http://www.ubos.org/onlinefiles/uploads/ubos
 
 What happens when we try to count the number of districts that are present in the PLE dataset?  
 ```{r districtCount}
-districts_PLE <- as.data.frame(table(data$DISTRICT))
+districts_PLE <- table(data$DISTRICT)
 districts_PLE
 ```
 
@@ -58,6 +85,10 @@ Let's address the first issue and remove the white space and see whether our res
 ```{r removeWhiteSpace}
 data$DISTRICT <- unlist(lapply(X = data$DISTRICT, FUN = trimws))
 
+# Using regexes or sub. sub("\\s+$", "", x) -- trailing or sub("^\\s+", "", x) --> leading. 
+# data$DISTRICT <- gsub('\\s$', '', data$DISTRICT)
+
+
 # And let's test the new results
 districts_PLE <- as.data.frame(table(data$DISTRICT))
 districts_PLE
@@ -69,6 +100,28 @@ As we can see, the duplicate districts have been knocked out bringing the unique
 We can now tackle the second observation.
 
 ### Standardise districts
+
+We do notice that each District got the REAL name then SPACE then an additional name like M/C or MUN e.g MBARARA M/C,IGANGA MUN. One other strategy we could use is removing anything after the first keyword.  
+
+
+There are many type of loops, but today we will focus on the for loop. Here is the basic structure of a for loop:
+
+```{ forloop}
+for (variable in vector) {
+  # do something
+}
+```
+
+```{r pickDistrictNamesOnly}
+# reuse - main dataframe for an example. 
+# dat <- data
+for(i in 1:length(dat$DISTRICT)){
+    dat$DISTRICT[i] <- strsplit(dat$DISTRICT[i], " ")[[1]][1]
+}
+
+print(tail(dat$DISTRICT, n = 100))
+```
+
 We noted that there were a number of districts that were broken down into counties, subcounties and municipalities. As an example, we have Arua district:
 ```{r Arua} 
 unique(data[grep(pattern = "*ARUA*", x = data$DISTRICT, ignore.case = TRUE), 'DISTRICT'])
@@ -174,7 +227,12 @@ merge_observations <- function(dataset, district, year) {
 }
 
 # Get the range of years
-years <- unique(data$YEAR)
+# years <- unique(data$YEAR)
+# Use factors for these YEAR as it's ordinal data. 
+data$YEAR <- as.factor(data$YEAR)
+
+# get the levels. 
+years <- levels(data$YEAR)
 
 # A list to capture new records. We shall subsequently merge these items.
 new_data <- list()
@@ -186,3 +244,128 @@ for(year in years) {
 }
 
 ```
+
+Anothe quick Merge would take these lines: 
+```{r cleanDataset2}
+# concatenate 2 columns with _ value. 
+dat$YEAR_DICT <- paste(dat$YEAR, dat$DISTRICT, sep = "_")
+
+# Using base aggregate to loop through the dataframe. This gives us unique YEAR_DISTRICT as 1 var. 
+# Elimidate YEAR_DISTRICT var. 
+# Sum all the rows and aggregate into 1 row assigned to YEAR_DISTRICT LINE
+dat_df <- aggregate(dat[,3:11], list(dat[,12]), function(x) sum(x, na.rm = TRUE))
+
+# create temporary list to split the merged YEAR_DISTRICT into 2 columns. 
+list <- strsplit(dat_df$Group.1, "_")
+
+# Create first part using inbuild Reduce to separate the list while combining them 
+# onto a dataframe with rbind. call df_a
+dat_df_a <- data.frame(Reduce(rbind, list))
+
+# separate remaining dataframe from YEAR_DISTRICT values. call df_b
+dat_df_b <- dat_df[, 2:10]
+
+# Map the 2 dataframes df_a and df_b by columns using cbind. 
+dat_df_clean <- cbind(dat_df_a, dat_df_b)
+
+# Rename the column names to something readable or back to previous. 
+cols <- c("YEAR","DISTRICT")
+colnames(dat_df_clean[, 1:2]) <- cols
+
+```
+
+
+
+
+### Understanding data with simple visualizations
+One of the most powerful functions of R is it's ability to produce a wide range of graphics to quickly and easily visualise data. Plots can be replicated, modified and even publishable with just a handful of 
+
+```{r vizPlot}
+
+# Using the base Plot. 
+plot(dat$FEMALE.CANDIDATES,dat$MALE.CANDIDATES)
+
+```
+
+Now is time to look at our data in the eyes of some basic visualizations. If we want to see the mean of FEMALE CANDIDATES. 
+
+```{r vizHist}
+
+# Using the base Hist. 
+hist(dat$FEMALE.CANDIDATES, main = "Distribution of FEMALE CANDIDATES", breaks = 30, xlab = "count (n)", col = "red")
+
+```
+
+
+Understanding basic trends across the data. Are the first grades in Abim increasing by years? We can add a basic linear regression to the plot using abline. NB. we can also use lty, lwd, col here.
+
+
+
+```{r vizLine}
+dat$YEAR<- as.factor(dat$YEAR)
+
+
+abim_dat <- dat[which(dat$DISTRICT=='ABIM'),]
+# dim(newdata)
+# Try "o" "p" "l" "b"
+plot(as.numeric(abim_dat$YEAR), abim_dat$TOTAL.DIV.1, type ="l",  col = "red" )
+abline(lm (TOTAL.DIV.1 ~ YEAR, data = abim_dat), lty = "dashed")
+
+```
+
+
+Scatter plots with legends and we will specify colour as the years.
+
+```{r vizScatter}
+# add pch = 15
+# bg = "blue"
+# cex = 2
+plot(dat$FEMALE.CANDIDATES, dat$MALE.CANDIDATES, col = dat$YEAR)
+
+# levels(dat$YEAR)
+legend(x = 500, y = 20000, legend = levels(dat$YEAR), col = c(1:3), pch = 16)
+
+```
+
+
+Let's examine the distribution of first grades for every year:
+If you wish to compare the medians of the boxplot, you can use the function notch. If the notches of two plots do not overlap, this is 'strong evidence' that the two medians differ (see ?boxplot)
+
+
+```{r vizBox}
+
+#notch = T
+#las = 1
+boxplot(dat$TOTAL.DIV.1 ~ dat$YEAR)
+
+
+```
+
+
+Saving Plots. 
+```{r savePng}
+
+# png
+
+png("distribution_female.png", width = 500, height = 500, res = 72)
+
+hist(dat$FEMALE.CANDIDATES, main = "Distribution of FEMALE CANDIDATES", breaks = 30, xlab = "count (n)", col = "red")
+
+
+dev.off()
+
+```
+
+
+```{r savePdf}
+# pdf
+
+pdf("distribution_male.pdf")
+
+hist(dat$MALE.CANDIDATES, main = "Distribution of MALE CANDIDATES", breaks = 30, xlab = "count (n)", col = "red")
+
+dev.off()
+```
+
+
+
