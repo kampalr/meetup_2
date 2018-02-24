@@ -143,9 +143,9 @@ na_df <- na_df[order(-na_df$Value), ]
 na_df
 ```
 
-We observe that all observations have their "NUMBER.OF.SCHOOLS.UNEB.CENTRE" as blank (`r nrow(data)` observations). We cannot be sure whether this was a column added in error, whether this was an omission during the data import/export process or whether this was acutally not tallied. A further consult would be required with the data owner to find out why this is blank. However, for our example, we shall focus on maintaining these as ***NIL/ZERO***.
+We observe that all observations have their "NUMBER_OF_SCHOOLS_UNEB_CENTRE" as blank (`r nrow(data)` observations). We cannot be sure whether this was a column added in error, whether this was an omission during the data import/export process or whether this was acutally not tallied. A further consult would be required with the data owner to find out why this is blank. However, for our example, we shall focus on maintaining these as **NIL/ZERO**.
 
-We also notice an interesting observation. We observed that there are ***`r na_df[na_df$Measure == 'FEMALE_TOTAL_DIV1', ]$Value`*** female students that did not achieve a DIVISION 1 during this period. Let's see in which districts this phenomenon occurred.
+We also notice an interesting observation. We observed that there are **`r na_df[na_df$Measure == 'FEMALE_TOTAL_DIV1', ]$Value`** female students that did not achieve a DIVISION 1 during this period. Let's see in which districts this phenomenon occurred.
 
 ```{r femaleDiv1}
 # Obtain a subset of the data containing total candidate and female candidate info
@@ -174,7 +174,7 @@ dat[is.na(dat)] <- 0
 Although we have standardized the districts, we have noticed that this has left some districts in the same year having two sets of observations. Ideally, we would want to find a way to merge these observations and in the best case, going back to the original data owner to better understand the approach on how this raw data was collected would provide the best guide on overcoming this challenge.
 
 ### Understanding data with simple visualizations
-One of the most powerful functions of R is it's ability to produce a wide range of graphics to quickly and easily visualise data. Plots can be replicated, modified and even publishable with just a handful of 
+One of the most powerful functions of R is it's ability to produce a wide range of graphics to quickly and easily visualise data. Plots can be replicated, modified and even publishable with just a handful of basic functions.
 
 ```{r vizPlot}
 # Using the base Plot. 
