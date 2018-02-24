@@ -74,7 +74,7 @@ Looking at the [census data (2017)](http://www.ubos.org/onlinefiles/uploads/ubos
 
 What happens when we try to count the number of districts that are present in the PLE dataset?  
 ```{r districtCount}
-districts_PLE <- table(dat$DISTRICT)
+districts_PLE <- as.data.frame(table(dat$DISTRICT))
 districts_PLE
 ```
 
@@ -126,30 +126,6 @@ for(i in 1:length(dat$DISTRICT)){
 print(tail(dat$DISTRICT, n = 100))
 ```
 
-We noted that there were a number of districts that were broken down into counties, subcounties and municipalities. As an example, we have Arua district:
-```{r Arua} 
-unique(data[grep(pattern = "*ARUA*", x = data$DISTRICT, ignore.case = TRUE), 'DISTRICT'])
-```
-
-This presents an interesting challenge. Using the official list of districts (the 'districts' object), we will need to identify those rows in the PLE dataset that have districts with a similar name. 
-
-We can quickly do this by establishing a list of valid districts with the row numbers they correspond with in the PLE dataset: 
-
-```{r findSimilarDistricts}
-district_rows <- list()
-
-for(district in districts) {
-    rows <- grep(pattern = paste("*", district, "*", sep=""), x = data$DISTRICT)
-    district_rows[[district]] <- rows
-}
-```
-
-In such a situation, it would be better to enquire from the original data owner on how the data was collected so as to establish the best strategy to unifying similar datasets. 
-
-In our circumstance, we shall add the corresponding variables for each similar area, for example, "ARUA", "ARUA M/C", "ARUA MUN." and "ARUA MAIN" would be combined to one record "ARUA".
-
-But before we can execute our strategy, let's check the other variables to make sure they are sane.
-
 ### Do we have any null (NA) values?
 
 Let's check to see whether there are any null (NA) values for each variable:
@@ -195,51 +171,7 @@ For our benefit, we shall mark all the NA values with **NIL/ZERO**. The missing 
 dat[is.na(dat)] <- 0
 ```
 
-### What about merging similar districts?
-Now that we have replaced the NA values with NIL/ZERO, we can merge the observations of similar districts into a single observation. We are assuming that:
-
-* Values are independent and do not overlap in each district's consituency/municipality.
-* Values will be grouped by year (and district) and associated values summed.
-
-So, our approach will be:
-
-* Group the observations by year
-* For each year:
-  + identify districts with similar names
-  + sum up the values for the similar districts and rename the observations with the official district name
-  + merge the new observations with the original dataset whilst dropping the older records.
-* Merge the above year groups into a new dataset.
-
-```{r cleanDataset}
-# concatenate 2 columns with _ value. 
-dat$YEAR_DICT <- paste(dat$YEAR, dat$DISTRICT, sep = "_")
-
-# Using base aggregate to loop through the dataframe. This gives us unique YEAR_DISTRICT as 1 var. 
-# Elimidate YEAR_DISTRICT var. 
-# Sum all the rows and aggregate into 1 row assigned to YEAR_DISTRICT LINE
-dat_df <- aggregate(dat[,3:11], list(dat[,12]), function(x) sum(x, na.rm = TRUE))
-
-# create temporary list to split the merged YEAR_DISTRICT into 2 columns. 
-list <- strsplit(dat_df$Group.1, "_")
-
-# Create first part using inbuild Reduce to separate the list while combining them 
-# onto a dataframe with rbind. call df_a
-dat_df_a <- data.frame(Reduce(rbind, list))
-
-# separate remaining dataframe from YEAR_DISTRICT values. call df_b
-dat_df_b <- dat_df[, 2:10]
-
-# Map the 2 dataframes df_a and df_b by columns using cbind. 
-dat_df_clean <- cbind(dat_df_a, dat_df_b)
-
-# Rename the column names to something readable or back to previous. 
-cols <- c("YEAR","DISTRICT")
-colnames(dat_df_clean[, 1:2]) <- cols
-
-```
-
-
-
+Although we have standardized the districts, we have noticed that this has left some districts in the same year having two sets of observations. Ideally, we would want to find a way to merge these observations and in the best case, going back to the original data owner to better understand the approach on how this raw data was collected would provide the best guide on overcoming this challenge.
 
 ### Understanding data with simple visualizations
 One of the most powerful functions of R is it's ability to produce a wide range of graphics to quickly and easily visualise data. Plots can be replicated, modified and even publishable with just a handful of 
